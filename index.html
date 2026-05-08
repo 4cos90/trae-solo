@@ -327,6 +327,8 @@
         let powerups = [];
         let particles = [];
         let gridOffset = 0;
+        let lastObstacleY = -500;
+        let lastPowerupY = -300;
 
         function resizeCanvas() {
             const container = canvas.parentElement;
@@ -434,6 +436,8 @@
             obstacles = [];
             powerups = [];
             particles = [];
+            lastObstacleY = -500;
+            lastPowerupY = -300;
             player.lane = 1;
             updatePlayerPosition();
             hud.classList.add('show');
@@ -461,18 +465,70 @@
         }
 
         function spawnObstacle() {
-            const lane = Math.floor(Math.random() * LANE_COUNT);
+            const minGap = 180;
+            const screenHeight = canvas.getBoundingClientRect().height;
+            const spawnY = -80;
+
+            if (screenHeight + lastObstacleY + spawnY < minGap) {
+                return;
+            }
+
+            const occupiedLanes = new Set();
+            obstacles.forEach(obs => {
+                if (obs.y < 100) {
+                    occupiedLanes.add(obs.lane);
+                }
+            });
+
+            const availableLanes = [];
+            for (let i = 0; i < LANE_COUNT; i++) {
+                if (!occupiedLanes.has(i)) {
+                    availableLanes.push(i);
+                }
+            }
+
+            if (availableLanes.length === 0) {
+                return;
+            }
+
+            const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
             obstacles.push({
                 lane,
                 x: trackStartX + lane * laneWidth + laneWidth / 2,
-                y: -80,
+                y: spawnY,
                 size: 70,
                 passed: false
             });
+            lastObstacleY = 0;
         }
 
         function spawnPowerup() {
-            const lane = Math.floor(Math.random() * LANE_COUNT);
+            const minGap = 150;
+            const screenHeight = canvas.getBoundingClientRect().height;
+
+            if (screenHeight + lastPowerupY < minGap) {
+                return;
+            }
+
+            const nearObstacleLanes = new Set();
+            obstacles.forEach(obs => {
+                if (obs.y < 200) {
+                    nearObstacleLanes.add(obs.lane);
+                }
+            });
+
+            const availableLanes = [];
+            for (let i = 0; i < LANE_COUNT; i++) {
+                if (!nearObstacleLanes.has(i)) {
+                    availableLanes.push(i);
+                }
+            }
+
+            if (availableLanes.length === 0) {
+                return;
+            }
+
+            const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
             powerups.push({
                 lane,
                 x: trackStartX + lane * laneWidth + laneWidth / 2,
@@ -481,6 +537,7 @@
                 collected: false,
                 glowPhase: Math.random() * Math.PI * 2
             });
+            lastPowerupY = 0;
         }
 
         function createExplosion(x, y, color) {
@@ -516,16 +573,21 @@
 
                 gridOffset = (gridOffset + gameSpeed * dt) % 50;
 
-                if (Math.random() < 0.02 * (gameSpeed / 5)) {
+                const spawnChance = 0.015 + (gameSpeed - 5) * 0.003;
+                if (Math.random() < spawnChance) {
                     spawnObstacle();
                 }
-                if (Math.random() < 0.008) {
+                if (Math.random() < 0.006) {
                     spawnPowerup();
                 }
 
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     const obs = obstacles[i];
                     obs.y += gameSpeed * dt;
+
+                    if (obs.y > lastObstacleY) {
+                        lastObstacleY = obs.y;
+                    }
 
                     if (!obs.passed && obs.y > playerY + player.size) {
                         obs.passed = true;
@@ -551,6 +613,10 @@
                     const pu = powerups[i];
                     pu.y += gameSpeed * dt;
                     pu.glowPhase += 0.1;
+
+                    if (pu.y > lastPowerupY) {
+                        lastPowerupY = pu.y;
+                    }
 
                     if (pu.y > rect.height + 50) {
                         powerups.splice(i, 1);
