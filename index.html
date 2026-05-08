@@ -327,8 +327,6 @@
         let powerups = [];
         let particles = [];
         let gridOffset = 0;
-        let lastObstacleY = -500;
-        let lastPowerupY = -300;
 
         function resizeCanvas() {
             const container = canvas.parentElement;
@@ -436,8 +434,6 @@
             obstacles = [];
             powerups = [];
             particles = [];
-            lastObstacleY = -500;
-            lastPowerupY = -300;
             player.lane = 1;
             updatePlayerPosition();
             hud.classList.add('show');
@@ -469,29 +465,16 @@
             const screenHeight = canvas.getBoundingClientRect().height;
             const spawnY = -80;
 
-            if (screenHeight + lastObstacleY + spawnY < minGap) {
+            const newestObstacle = obstacles.reduce((newest, obs) => {
+                if (!newest || obs.y < newest.y) return obs;
+                return newest;
+            }, null);
+
+            if (newestObstacle && newestObstacle.y - spawnY < minGap) {
                 return;
             }
 
-            const occupiedLanes = new Set();
-            obstacles.forEach(obs => {
-                if (obs.y < 100) {
-                    occupiedLanes.add(obs.lane);
-                }
-            });
-
-            const availableLanes = [];
-            for (let i = 0; i < LANE_COUNT; i++) {
-                if (!occupiedLanes.has(i)) {
-                    availableLanes.push(i);
-                }
-            }
-
-            if (availableLanes.length === 0) {
-                return;
-            }
-
-            const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
+            const lane = Math.floor(Math.random() * LANE_COUNT);
             obstacles.push({
                 lane,
                 x: trackStartX + lane * laneWidth + laneWidth / 2,
@@ -499,45 +482,30 @@
                 size: 70,
                 passed: false
             });
-            lastObstacleY = 0;
         }
 
         function spawnPowerup() {
             const minGap = 150;
-            const screenHeight = canvas.getBoundingClientRect().height;
+            const spawnY = -50;
 
-            if (screenHeight + lastPowerupY < minGap) {
+            const newestPowerup = powerups.reduce((newest, pu) => {
+                if (!newest || pu.y < newest.y) return pu;
+                return newest;
+            }, null);
+
+            if (newestPowerup && newestPowerup.y - spawnY < minGap) {
                 return;
             }
 
-            const nearObstacleLanes = new Set();
-            obstacles.forEach(obs => {
-                if (obs.y < 200) {
-                    nearObstacleLanes.add(obs.lane);
-                }
-            });
-
-            const availableLanes = [];
-            for (let i = 0; i < LANE_COUNT; i++) {
-                if (!nearObstacleLanes.has(i)) {
-                    availableLanes.push(i);
-                }
-            }
-
-            if (availableLanes.length === 0) {
-                return;
-            }
-
-            const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
+            const lane = Math.floor(Math.random() * LANE_COUNT);
             powerups.push({
                 lane,
                 x: trackStartX + lane * laneWidth + laneWidth / 2,
-                y: -50,
+                y: spawnY,
                 size: 25,
                 collected: false,
                 glowPhase: Math.random() * Math.PI * 2
             });
-            lastPowerupY = 0;
         }
 
         function createExplosion(x, y, color) {
@@ -585,10 +553,6 @@
                     const obs = obstacles[i];
                     obs.y += gameSpeed * dt;
 
-                    if (obs.y > lastObstacleY) {
-                        lastObstacleY = obs.y;
-                    }
-
                     if (!obs.passed && obs.y > playerY + player.size) {
                         obs.passed = true;
                         score += 10;
@@ -613,10 +577,6 @@
                     const pu = powerups[i];
                     pu.y += gameSpeed * dt;
                     pu.glowPhase += 0.1;
-
-                    if (pu.y > lastPowerupY) {
-                        lastPowerupY = pu.y;
-                    }
 
                     if (pu.y > rect.height + 50) {
                         powerups.splice(i, 1);
