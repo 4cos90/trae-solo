@@ -556,20 +556,11 @@
                     const obs = obstacles[i];
                     obs.y += gameSpeed * dt;
 
-                    if (!obs.passed && obs.y > playerY + player.size) {
-                        obs.passed = true;
-                        score += 10;
-                        currentScoreEl.textContent = score;
-                    }
-
-                    if (obs.y > rect.height + 100) {
-                        obstacles.splice(i, 1);
-                        continue;
-                    }
-
                     const dx = Math.abs(player.x - obs.x);
                     const dy = Math.abs(playerY - obs.y);
-                    if (dx < (player.size + obs.size) / 2 - 10 && dy < (player.size + obs.size) / 2 - 10) {
+                    const collisionThreshold = (player.size + obs.size) / 2;
+
+                    if (dx < collisionThreshold && dy < collisionThreshold) {
                         if (hasShield) {
                             speedRecovery = 1;
                             gameSpeed = 0;
@@ -581,6 +572,17 @@
                             gameOver();
                             return;
                         }
+                        continue;
+                    }
+
+                    if (!obs.passed && obs.y > playerY + player.size) {
+                        obs.passed = true;
+                        score += 10;
+                        currentScoreEl.textContent = score;
+                    }
+
+                    if (obs.y > rect.height + 100) {
+                        obstacles.splice(i, 1);
                     }
                 }
 
