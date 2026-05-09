@@ -318,6 +318,7 @@
         let highScore = parseInt(localStorage.getItem('geometricDashHighScore')) || 0;
         let gameSpeed = 5;
         let hasShield = false;
+        let speedRecovery = 0;
         let lastTime = 0;
         let deltaTime = 0;
 
@@ -570,7 +571,8 @@
                     const dy = Math.abs(playerY - obs.y);
                     if (dx < (player.size + obs.size) / 2 - 10 && dy < (player.size + obs.size) / 2 - 10) {
                         if (hasShield) {
-                            gameSpeed = 5;
+                            speedRecovery = 1;
+                            gameSpeed = 0;
                             hasShield = false;
                             createExplosion(player.x, playerY, COLORS.primary);
                             obstacles.splice(i, 1);
@@ -603,8 +605,17 @@
                     }
                 }
 
-                gameSpeed = Math.min(5 + score / 50, 15);
-                hasShield = gameSpeed > 5;
+                if (speedRecovery > 0) {
+                    speedRecovery += 0.05;
+                    gameSpeed = Math.min(speedRecovery * 5, 5);
+                    if (speedRecovery >= 1) {
+                        speedRecovery = 0;
+                        gameSpeed = 5;
+                    }
+                } else {
+                    gameSpeed = Math.min(5 + score / 50, 15);
+                    hasShield = gameSpeed > 10;
+                }
             }
 
             for (let i = particles.length - 1; i >= 0; i--) {
