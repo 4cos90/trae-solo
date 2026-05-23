@@ -573,6 +573,10 @@
                             return;
                         }
                         continue;
+                    } else {
+                        if (obs.y > playerY - 50 && obs.y < playerY + 50) {
+                            console.log('接近障碍物: dx=' + dx.toFixed(1) + ', dy=' + dy.toFixed(1) + ', threshold=' + collisionThreshold.toFixed(1));
+                        }
                     }
 
                     if (!obs.passed && obs.y > playerY + player.size) {
